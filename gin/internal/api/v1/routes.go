@@ -1,21 +1,18 @@
 package v1
 
-import (
-    "github.com/gin-gonic/gin"
-)
+import "github.com/gin-gonic/gin"
 
-// RegisterRoutes attaches all v1 handlers to the provided gin.RouterGroup
+// RegisterRoutes attaches all v1 handlers to the supplied router group.
 func RegisterRoutes(rg *gin.RouterGroup) {
-    // Sub‑group for users (you can keep adding more groups)
-    userGroup := rg.Group("/users")
-    {
-        userGroup.GET("/", GetUsers)           // GET /api/v1/users
-        userGroup.POST("/", CreateUser)        // POST /api/v1/users
-        userGroup.GET("/:id", GetUserByID)     // GET /api/v1/users/:id
-        userGroup.PUT("/:id", UpdateUser)      // PUT /api/v1/users/:id
-        userGroup.DELETE("/:id", DeleteUser)   // DELETE /api/v1/users/:id
-    }
+    // Create a new stream key (requires auth)
+    rg.POST("/keys", CreateKey)
 
-    // Example of a health check endpoint
-    rg.GET("/healthz", HealthCheck)
+    // Issue a short‑lived JWT for HLS playback
+    rg.POST("/tokens", IssueToken)
+
+    // Nginx‑RTMP calls this on every publish attempt
+    rg.GET("/validate-key", ValidateKey)
+
+    // Nginx uses this to protect HLS endpoints
+    rg.GET("/validate-token", ValidateToken)
 }

@@ -2,103 +2,127 @@ package v1
 
 import (
     "net/http"
-    "strconv"
+    "time"
 
     "github.com/gin-gonic/gin"
+    "github.com/golang-jwt/jwt/v5"
+    "github.com/CSBOWMA/bigredhacks2025/gin/internal/db"
+    "github.com/CSBOWMA/bigredhacks2025/gin/pkg/keys"
     "github.com/CSBOWMA/bigredhacks2025/gin/pkg/models"
+    "golang.org/x/crypto/bcrypt"
 )
 
-// In a real app you would talk to a DB here.
-// For this demo we just store data in memory.
-var userStore = map[int]models.User{}
+// ---------- 1️⃣ Create a new RTMP key ----------
+func CreateKey(c *gin.Context) {
+    // In a real app you would extract the user ID from an auth token.
+    userID, _ := c.Get("user_id")
+    uid := userID.(uint)
 
-// GetUsers returns all users
-func GetUsers(c *gin.Context) {
-    var users []models.User
-    for _, u := range userStore {
-        users = append(users, u)
-    }
-    c.JSON(http.StatusOK, gin.H{"data": users})
-}
-
-// CreateUser creates a new user
-func CreateUser(c *gin.Context) {
-    var req models.User
-    if err := c.ShouldBindJSON(&req); err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-        return
-    }
-
-    // Simple ID generation (auto‑increment)
-    nextID := len(userStore) + 1
-    req.ID = nextID
-
-    userStore[nextID] = req
-    c.JSON(http.StatusCreated, gin.H{"data": req})
-}
-
-// GetUserByID returns a single user
-func GetUserByID(c *gin.Context) {
-    idStr := c.Param("id")
-    id, err := strconv.Atoi(idStr)
+    plain, hash, err := keys.GenerateStreamKey()
     if err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate key"})
         return
     }
 
-    user, ok := userStore[id]
-    if !ok {
-        c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+    key := models.StreamKey{
+        UserID:  uid,
+        KeyHash: hash,
+    }
+    if err := db.DB.Create(&key).Error; err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to store key"})
         return
     }
 
-    c.JSON(http.StatusOK, gin.H{"data": user})
+    // Show the plain key ONLY ONCE.
+    c.JSON(http.StatusCreated, gin.H{
+        "message": "keep this key safe – you will not see it again",
+        "key":     plain,
+    })
 }
 
-// UpdateUser updates an existing user
-func UpdateUser(c *gin.Context) {
-    idStr := c.Param("id")
-    id, err := strconv.Atoi(idStr)
+// ---------- 2️⃣ Issue a JWT for HLS playback ----------
+type Claims struct {
+    UserID uint `json:"uid"`
+    jwt.RegisteredClaims
+}
+
+var jwtSecret = []byte("super-secret-change-me") // read from env in prod
+
+func IssueToken(c *gin.Context) {
+    uid, _ := c.Get("user_id")
+    userID := uid.(uint)
+
+    exp := time.Now().Add(15 * time.Minute)
+    claims := Claims{
+        UserID: userID,
+        RegisteredClaims: jwt.RegisteredClaims{
+            ExpiresAt: jwt.NewNumericDate(exp),
+            IssuedAt:  jwt.NewNumericDate(time.Now()),
+        },
+    }
+
+    token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+    signed, err := token.SignedString(jwtSecret)
     if err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to sign token"})
         return
     }
 
-    var req models.User
-    if err := c.ShouldBindJSON(&req); err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-        return
-    }
-
-    if _, ok := userStore[id]; !ok {
-        c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
-        return
-    }
-
-    req.ID = id
-    userStore[id] = req
-    c.JSON(http.StatusOK, gin.H{"data": req})
+    c.JSON(http.StatusOK, gin.H{"token": signed})
 }
 
-// DeleteUser removes a user
-func DeleteUser(c *gin.Context) {
-    idStr := c.Param("id")
-    id, err := strconv.Atoi(idStr)
-    if err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+// ---------- 3️⃣ Validate the RTMP key (called by nginx‑rtmp) ----------
+func ValidateKey(c *gin.Context) {
+    keyPlain := c.Query("key")
+    if keyPlain == "" {
+        c.Status(http.StatusForbidden)
         return
     }
 
-    if _, ok := userStore[id]; !ok {
-        c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+    // Look up the hash that matches the plain key.
+    var stored models.StreamKey
+    if err := db.DB.Where("key_hash = ?", keyPlain).First(&stored).Error; err != nil {
+        c.Status(http.StatusForbidden)
         return
     }
 
-    delete(userStore, id)
-    c.JSON(http.StatusNoContent, nil)
+    // Compare the supplied plain key with the stored bcrypt hash.
+    if err := bcrypt.CompareHashAndPassword([]byte(stored.KeyHash), []byte(keyPlain)); err != nil {
+        c.Status(http.StatusForbidden)
+        return
+    }
+
+    // Optional: reject revoked keys.
+    if stored.RevokedAt != nil {
+        c.Status(http.StatusForbidden)
+        return
+    }
+
+    c.Status(http.StatusOK)
 }
 
-// HealthCheck is a tiny endpoint used by load balancers / Docker healthchecks
-func HealthCheck(c *gin.Context) {
-    c.JSON(http.StatusOK, gin.H{"status": "ok"})
+// ---------- 4️⃣ Validate the JWT (called by nginx via auth_request) ----------
+func ValidateToken(c *gin.Context) {
+    tokenString := c.Query("token")
+    if tokenString == "" {
+        c.Status(http.StatusForbidden)
+        return
+    }
+
+    claims := &Claims{}
+    token, err := jwt.ParseWithClaims(tokenString, claims, func(t *jwt.Token) (interface{}, error) {
+        if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+            return nil, jwt.ErrSignatureInvalid
+        }
+        return jwtSecret, nil
+    })
+
+    if err != nil || !token.Valid {
+        c.Status(http.StatusForbidden)
+        return
+    }
+
+    // (Optional) you could also enforce that the user ID in the JWT
+    // matches the stream ID requested in the URL.
+    c.Status(http.StatusOK)
 }
