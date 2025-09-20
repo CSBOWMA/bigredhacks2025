@@ -1,26 +1,34 @@
+# ---------- Builder stage ----------
+FROM golang:1.24.2-alpine AS builder
 
-FROM golang:1.24.2
+# Install git (required for any potential git‑based module proxy fallback)
+RUN apk add --no-cache git ca-certificates
 
-# Set destination for COPY
-WORKDIR /app
+# Working directory inside the container
+WORKDIR /src
 
-# Download Go modules
-COPY . ./
+# Copy everything we need for the build.
+#   - go.mod, go.sum, vendor/ (already populated)
+#   - source code (cmd, pkg, etc.)
+COPY . .
 
-# CopyVcV the source code. Note the slash at the end, as explained in
-# https://docs.docker.com/reference/dockerfile/#copy
-COPY . ./
+# Sanity check: make sure vendor/ exists and is populated.
 
-# Build
-RUN go mod tidy
-RUN CGO_ENABLED=1 GOOS=linux go build ./cmd/server -o /docker-gs-ping
+# Build the binary using the vendored modules only.
+#   -mod=vendor forces the go tool to read from ./vendor
+#   CGO_ENABLED=0 produces a static binary that runs on a scratch image.
+#   -ldflags="-s -w" strips debug information to keep the image tiny.
+RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o /app ./cmd/server
 
-# Optional:
-# To bind to a TCP port, runtime parameters must be supplied to the docker command.
-# But we can document in the Dockerfile what ports
-# the application is going to listen on by default.
-# https://docs.docker.com/reference/dockerfile/#expose
-EXPOSE 8080
+# ---------- Runtime stage ----------
+# Use a minimal base image (no shell, no extra libraries)
+FROM alpine:3.20 AS runtime
 
-# Run
-CMD ["/docker-gs-ping"]
+# Copy the compiled binary from the builder stage.
+COPY --from=builder /app /app
+
+# (Optional) run as a non‑root user for extra safety.
+# RUN adduser -D -g '' appuser
+# USER appuser
+
+ENTRYPOINT ["/app"]

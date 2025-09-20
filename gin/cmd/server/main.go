@@ -3,13 +3,11 @@ package main
 import (
     "github.com/CSBOWMA/bigredhacks2025/gin/internal/api/v1"
 	"github.com/gin-gonic/gin"
-    "github.com/CSBOWMA/bigredhacks2025/gin/internal/db"
 
 )
 
 func main() {
     // Initialise the DB (in a real app you would read the DSN from env)
-    db.Init() // calls gorm.Open(...), AutoMigrate(&models.StreamKey{})
 
     r := gin.New()
     // Global middleware

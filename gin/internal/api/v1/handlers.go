@@ -6,9 +6,8 @@ import (
 
     "github.com/gin-gonic/gin"
     "github.com/golang-jwt/jwt/v5"
-    "github.com/CSBOWMA/bigredhacks2025/gin/internal/db"
-    "github.com/CSBOWMA/bigredhacks2025/gin/pkg/keys"
-    "github.com/CSBOWMA/bigredhacks2025/gin/pkg/models"
+    "github.com/CSBOWMA/bigredhacks2025/gin/keys"
+    "github.com/CSBOWMA/bigredhacks2025/gin/models"
     "golang.org/x/crypto/bcrypt"
 )
 
@@ -28,11 +27,7 @@ func CreateKey(c *gin.Context) {
         UserID:  uid,
         KeyHash: hash,
     }
-    if err := db.DB.Create(&key).Error; err != nil {
-        c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to store key"})
-        return
-    }
-
+    println(key.KeyHash);
     // Show the plain key ONLY ONCE.
     c.JSON(http.StatusCreated, gin.H{
         "message": "keep this key safe – you will not see it again",
@@ -81,10 +76,6 @@ func ValidateKey(c *gin.Context) {
 
     // Look up the hash that matches the plain key.
     var stored models.StreamKey
-    if err := db.DB.Where("key_hash = ?", keyPlain).First(&stored).Error; err != nil {
-        c.Status(http.StatusForbidden)
-        return
-    }
 
     // Compare the supplied plain key with the stored bcrypt hash.
     if err := bcrypt.CompareHashAndPassword([]byte(stored.KeyHash), []byte(keyPlain)); err != nil {

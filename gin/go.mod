@@ -1,7 +1,5 @@
 module github.com/CSBOWMA/bigredhacks2025/gin
 
-
-
 go 1.24.2
 
 require (
@@ -41,6 +39,5 @@ require (
 	golang.org/x/text v0.29.0 // indirect
 	google.golang.org/protobuf v1.36.9 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-)
 
-replace github.com/CSBOWMA/bigredhacks2025/gin => ./
+)
