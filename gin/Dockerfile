@@ -1,45 +1,26 @@
-# ---------- Build & Runtime (single stage) ----------
-FROM golang:1.22-alpine AS builder
 
-# Install only what we need for a clean build
-RUN apk add --no-cache git ca-certificates bash
+FROM golang:1.24.2
 
-# Working directory inside the container
-WORKDIR /src
+# Set destination for COPY
+WORKDIR /app
 
-# -------------------------------------------------
-# 1️⃣  Cache Go modules (including vendor)
-# -------------------------------------------------
-COPY go.mod go.sum ./
-RUN go mod download && go mod vendor   # <-- creates ./vendor
+# Download Go modules
+COPY . ./
 
-# -------------------------------------------------
-# 2️⃣  Copy the rest of the source code
-# -------------------------------------------------
-COPY . .
+# CopyVcV the source code. Note the slash at the end, as explained in
+# https://docs.docker.com/reference/dockerfile/#copy
+COPY . ./
 
-# -------------------------------------------------
-# 3️⃣  Build the binary using the vendor directory
-# -------------------------------------------------
-RUN CGO_ENABLED=0 GOOS=linux go build \
-    -mod=vendor \
-    -ldflags="-s -w" \
-    -o /src/bin/gin-app \
-    ./cmd/server   # <-- adjust if your main package is elsewhere
+# Build
+RUN go mod tidy
+RUN CGO_ENABLED=1 GOOS=linux go build ./cmd/server -o /docker-gs-ping
 
-# -------------------------------------------------
-# 4️⃣  Create the folder for the SQLite DB and an empty file
-# -------------------------------------------------
-RUN mkdir -p /data && \
-    touch /data/stream.db && \
-    chmod 666 /data/stream.db
-
-# -------------------------------------------------
-# 5️⃣  Expose the Gin port (default 8080)
-# -------------------------------------------------
+# Optional:
+# To bind to a TCP port, runtime parameters must be supplied to the docker command.
+# But we can document in the Dockerfile what ports
+# the application is going to listen on by default.
+# https://docs.docker.com/reference/dockerfile/#expose
 EXPOSE 8080
 
-# -------------------------------------------------
-# 6️⃣  Run the binary
-# -------------------------------------------------
-ENTRYPOINT ["/src/bin/gin-app"]
+# Run
+CMD ["/docker-gs-ping"]

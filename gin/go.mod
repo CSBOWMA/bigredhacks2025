@@ -1,4 +1,3 @@
-replace github.com/CSBOWMA/bigredhacks2025/gin => ./
 module github.com/CSBOWMA/bigredhacks2025/gin
 
 
