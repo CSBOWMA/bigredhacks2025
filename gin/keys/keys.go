@@ -1,30 +1,26 @@
-// backend/pkg/keys/keys.go
 package keys
 
 import (
-    "crypto/rand"
-    "encoding/base64"
-    "golang.org/x/crypto/bcrypt"
+	"crypto/rand"
+	"encoding/base64"
+	"golang.org/x/crypto/bcrypt"
 )
 
-// GenerateStreamKey returns a plain (random) key and its bcrypt hash.
-// The plain key is shown to the user **once**; the hash is what we store.
-func GenerateStreamKey() (plain string, hash string, err error) {
-    // 32 random bytes = 256‑bit secret
-    b := make([]byte, 32)
-    _, err = rand.Read(b)
-    if err != nil {
-        return "", "", err
-    }
+// GenerateStreamKey returns a cryptographically random plain key,
+// a bcrypt hash of that key, and an error (if any).
+func GenerateStreamKey() (plain string, hashed string, err error) {
+	// 24 random bytes -> 32 char base64 URL string
+	b := make([]byte, 24)
+	_, err = rand.Read(b)
+	if err != nil {
+		return "", "", err
+	}
+	plain = base64.RawURLEncoding.EncodeToString(b)
 
-    // URL‑safe base64 without padding (easy to copy/paste)
-    plain = base64.RawURLEncoding.EncodeToString(b)
-
-    // bcrypt with the default cost (you can increase it for extra security)
-    hashedBytes, err := bcrypt.GenerateFromPassword([]byte(plain), bcrypt.DefaultCost)
-    if err != nil {
-        return "", "", err
-    }
-    hash = string(hashedBytes)
-    return plain, hash, nil
+	// bcrypt cost 10 is a good trade‑off for a hackathon
+	hash, err := bcrypt.GenerateFromPassword([]byte(plain), bcrypt.DefaultCost)
+	if err != nil {
+		return "", "", err
+	}
+	return plain, string(hash), nil
 }

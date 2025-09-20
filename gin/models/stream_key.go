@@ -1,14 +1,19 @@
 package models
 
-import "time"
+import (
+	"time"
 
-// StreamKey is the DB representation of an RTMP secret.
-// The plain secret is never stored – only its bcrypt hash.
+	"go.mongodb.org/mongo-driver/bson/primitive"
+)
+
+// StreamKey is the secret a broadcaster sends to the RTMP server.
+// Only the **bcrypt hash** of the key is persisted; the plain key is shown
+// to the user exactly once.
 type StreamKey struct {
-    ID        uint      `gorm:"primaryKey;autoIncrement" json:"id"`
-    UserID    uint      `json:"-" gorm:"index"`               // owner of the key
-    KeyHash   string    `json:"-" gorm:"type:varchar(255);not null;unique"`
-    RevokedAt *time.Time `json:"-" gorm:"default:null"`      // nil = active
-    CreatedAt time.Time `json:"created_at" gorm:"autoCreateTime"`
-    UpdatedAt time.Time `json:"updated_at" gorm:"autoUpdateTime"`
+	ID        primitive.ObjectID `json:"id" bson:"_id,omitempty"`
+	UserID    primitive.ObjectID `json:"user_id" bson:"user_id"`
+	KeyHash   string             `json:"-" bson:"key_hash"` // never marshalled to JSON
+	Name      string             `json:"name" bson:"name"` // optional label
+	CreatedAt time.Time          `json:"created_at" bson:"created_at"`
+	Revoked   bool               `json:"revoked" bson:"revoked"`
 }

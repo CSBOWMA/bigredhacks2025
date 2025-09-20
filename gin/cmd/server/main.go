@@ -1,29 +1,60 @@
 package main
 
 import (
-    "github.com/CSBOWMA/bigredhacks2025/gin/internal/api/v1"
+	"log"
+	"net/http"
 	"github.com/gin-gonic/gin"
-
+    "github.com/CSBOWMA/bigredhacks2025/gin/internal/api/v1"
+    "github.com/CSBOWMA/bigredhacks2025/gin/internal/db"
+    "github.com/CSBOWMA/bigredhacks2025/gin/internal/config" 
 )
 
 func main() {
-    // Initialise the DB (in a real app you would read the DSN from env)
+	// -----------------------------------------------------------------
+	// 1️⃣ Load .env (populates os.Environ for the rest of the code)
+	// -----------------------------------------------------------------
+	env := config.Load()
 
-    r := gin.New()
-    // Global middleware
-    r.Use(gin.Recovery())          // recover from panics
+	// -----------------------------------------------------------------
+	// 2️⃣ Connect to MongoDB Atlas
+	// -----------------------------------------------------------------
+	mongoURI := env["MONGODB_URI"]
+	if mongoURI == "" {
+		log.Fatal("� MONGODB_URI not set in .env")
+	}
+	if err := db.Connect(mongoURI); err != nil {
+		log.Fatalf("� failed to connect to MongoDB: %v", err)
+	}
+	defer db.Close()
 
-    // API version 1
-    apiV1 := r.Group("/api/v1")
-    v1.RegisterRoutes(apiV1)       // calls the RegisterRoutes defined in internal/api/v1/routes.go
+	// -----------------------------------------------------------------
+	// 3️⃣ Gin router – minimal middleware for a hackathon
+	// -----------------------------------------------------------------
+	r := gin.New()
+	r.Use(gin.Recovery()) // recover from panics
 
-    // Health endpoint (useful for Docker/K8s liveness probes)
-    r.GET("/health", func(c *gin.Context) {
-        c.JSON(200, gin.H{"status": "ok"})
-    })
+	// -----------------------------------------------------------------
+	// 4️⃣ Register the v1 routes (handlers use db.DB() internally)
+	// -----------------------------------------------------------------
+	apiGroup := r.Group("/api/v1")
+	v1.RegisterRoutes(apiGroup)
 
-    // Listen on port 8080 (the port we expose in Docker)
-    if err := r.Run(":8080"); err != nil {
-        panic(err)
-    }
+	// -----------------------------------------------------------------
+	// 5️⃣ Simple health endpoint (useful for Docker/K8s)
+	// -----------------------------------------------------------------
+	r.GET("/health", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"status": "ok"})
+	})
+
+	// -----------------------------------------------------------------
+	// 6️⃣ Start the HTTP server
+	// -----------------------------------------------------------------
+	port := env["PORT"]
+	if port == "" {
+		port = "8080"
+	}
+	log.Printf("� Server listening on :%s", port)
+	if err := r.Run(":" + port); err != nil {
+		log.Fatalf("� server crashed: %v", err)
+	}
 }
