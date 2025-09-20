@@ -2,71 +2,47 @@ package repo
 
 import (
 	"context"
-
-	"go.mongodb.org/mongo-driver/bson"
-	"golang.org/x/crypto/bcrypt"
+ 
+	"github.com/CSBOWMA/bigredhacks2025/gin/internal/db"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"github.com/CSBOWMA/bigredhacks2025/gin/models"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
-
-    "github.com/CSBOWMA/bigredhacks2025/gin/models"
 )
 
-// StreamKeyRepo wraps the Mongo collection for stream keys.
-type StreamKeyRepo struct {
-	col *mongo.Collection
+// FindStreamKeyByUserID returns the active stream key for a user (or nil).
+func FindStreamKeyByUserID(ctx context.Context, userID primitive.ObjectID) (*models.StreamKey, error) {
+	coll := db.DB().Collection("stream_keys")
+	filter := bson.M{"user_id": userID}
+
+	var key models.StreamKey
+	err := coll.FindOne(ctx, filter).Decode(&key)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &key, nil
 }
 
-// NewStreamKeyRepo creates a new repo.
-func NewStreamKeyRepo(db *mongo.Database) *StreamKeyRepo {
-	return &StreamKeyRepo{col: db.Collection("stream_keys")}
+// CreateStreamKey inserts a new document **and fills the ID field**.
+func CreateStreamKey(ctx context.Context, key *models.StreamKey) error {
+	coll := db.DB().Collection("stream_keys")
+	res, err := coll.InsertOne(ctx, key)
+	if err != nil {
+		return err
+	}
+	if id, ok := res.InsertedID.(primitive.ObjectID); ok {
+		key.ID = id
+	}
+	return nil
 }
 
-// Insert stores a new key (only the hash!).
-func (r *StreamKeyRepo) Insert(ctx context.Context, key *models.StreamKey) error {
-	_, err := r.col.InsertOne(ctx, key)
+// DeleteStreamKeyByUserID removes any existing key for the user.
+func DeleteStreamKeyByUserID(ctx context.Context, userID primitive.ObjectID) error {
+	coll := db.DB().Collection("stream_keys")
+	filter := bson.M{"user_id": userID}
+	_, err := coll.DeleteOne(ctx, filter)
 	return err
-}
-
-// FindByPlainKey returns the *first* non‑revoked key whose bcrypt hash matches plainKey.
-func (r *StreamKeyRepo) FindByPlainKey(ctx context.Context, plainKey string) (*models.StreamKey, error) {
-	// We cannot query the hash directly with bcrypt; we have to fetch all
-	// non‑revoked keys for the user and test each one.
-	//var keys []models.StreamKey
-	filter := bson.M{"revoked": false}
-	cur, err := r.col.Find(ctx, filter)
-	if err != nil {
-		return nil, err
-	}
-	defer cur.Close(ctx)
-
-	for cur.Next(ctx) {
-		var k models.StreamKey
-		if err = cur.Decode(&k); err != nil {
-			continue
-		}
-		// Compare the plain key with the stored hash.
-		if err = bcrypt.CompareHashAndPassword([]byte(k.KeyHash), []byte(plainKey)); err == nil {
-			return &k, nil
-		}
-	}
-	return nil, mongo.ErrNoDocuments
-}
-
-// FindByUserID returns all (optionally non‑revoked) keys for a user.
-func (r *StreamKeyRepo) FindByUserID(ctx context.Context, uid primitive.ObjectID, includeRevoked bool) ([]models.StreamKey, error) {
-	filter := bson.M{"user_id": uid}
-	if !includeRevoked {
-		filter["revoked"] = false
-	}
-	cur, err := r.col.Find(ctx, filter)
-	if err != nil {
-		return nil, err
-	}
-	defer cur.Close(ctx)
-
-	var out []models.StreamKey
-	if err = cur.All(ctx, &out); err != nil {
-		return nil, err
-	}
-	return out, nil
 }
