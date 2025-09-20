@@ -45,6 +45,14 @@ func Connect(uri string) error {
 			client = nil
 			return nil
 		}
+    err = ensureStreamKeyIndexes()
+		if err != nil {
+			// If we cannot create indexes we consider it a fatal error.
+			log.Printf("db: failed to create stream key indexes: %v", err)
+			_ = client.Disconnect(context.Background())
+			client = nil
+			return nil
+		}
 	log.Println("✅ Connected to MongoDB Atlas")
 	return nil
 }
@@ -101,4 +109,18 @@ func ensureUserIndexes() error {
         },
     )
     return err
+}
+
+func ensureStreamKeyIndexes() error {
+	coll := DB().Collection("stream_keys")
+
+	// Unique index on user_id so a user can have at most one key.
+	_, err := coll.Indexes().CreateOne(
+		context.Background(),
+		mongo.IndexModel{
+			Keys:    map[string]int{"user_id": 1},
+			Options: options.Index().SetUnique(true).SetName("user_id_unique"),
+		},
+	)
+	return err
 }
