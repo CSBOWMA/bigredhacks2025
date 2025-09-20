@@ -1,4 +1,4 @@
-module gin
+module github.com/CSBOWMA/bigredhacks2025/gin
 
 go 1.24.2
 
