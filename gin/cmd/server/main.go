@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"github.com/gin-gonic/gin"
+    "github.com/gin-contrib/cors"
     "github.com/CSBOWMA/bigredhacks2025/gin/internal/api/v1"
     "github.com/CSBOWMA/bigredhacks2025/gin/internal/db"
     "github.com/CSBOWMA/bigredhacks2025/gin/internal/config" 
@@ -32,6 +33,14 @@ func main() {
 	// -----------------------------------------------------------------
 	r := gin.New()
 	r.Use(gin.Recovery()) // recover from panics
+
+      r.Use(cors.New(cors.Config{
+        AllowOrigins:     []string{"*"},                 // <-- allow any origin
+        AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+        AllowHeaders:     []string{"Origin", "Content-Type", "Authorization", "X-Session-ID"},
+        ExposeHeaders:    []string{""},
+        AllowCredentials: true,
+    }))
 
 	// -----------------------------------------------------------------
 	// 4️⃣ Register the v1 routes (handlers use db.DB() internally)
