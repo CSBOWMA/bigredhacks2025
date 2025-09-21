@@ -17,7 +17,11 @@ export default function Header() {
       <header className="fixed top-0 left-0 w-full h-20 z-50 flex items-center justify-between px-8 bg-[#f6f3c680]">
         {/* Content layer */}
         <div className="relative z-10 flex items-center justify-between w-full">
-          <img className="w-14" src="/hivelogo2.png" /> 
+          <a href="/">
+            <button className="focus:outline-none">
+              <img className="w-14" src="/hivelogo2.png" alt="Home" />
+            </button>
+          </a>
 
           <div className="flex-1 flex justify-center">
             <div className="relative">
