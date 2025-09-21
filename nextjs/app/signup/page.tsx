@@ -37,6 +37,7 @@ export default function SignUp() {
       const data = await res.json();
       if (res.ok) {
         setMessage("Account created successfully!");
+        router.push('/login');
       } else {
         setMessage(data.error || "Something went wrong.");
       }

@@ -23,6 +23,7 @@ export default function Header() {
             </button>
           </a>
 
+       
           <div className="flex-1 flex justify-center">
             <div className="relative">
               {/* Search input with glass effect */}
@@ -36,14 +37,19 @@ export default function Header() {
             </div>
           </div>
 
-          <button
-            className="bg-white/20 backdrop-blur-sm rounded-lg px-3 py-2 text-2xl cursor-pointer text-[#3f230f] hover:bg-white/30 hover:text-[#3f230f] transition-all duration-300 relative overflow-hidden"
-            aria-label="Menu"
-          >
-            {/* Button reflection */}
-            <div className="absolute top-0 left-0 w-full h-1/2 pointer-events-none"></div>
-            <span className="relative z-10">&#9776;</span>
-          </button>
+          {/* Log In and Sign Up buttons */}
+          <div className="flex items-center gap-3">
+            <a href="/login">
+              <button className="bg-white/30 text-[#3f230f] px-4 py-2 rounded-lg shadow hover:bg-white/50 transition-all duration-200">
+                Log In
+              </button>
+            </a>
+            <a href="/signup">
+              <button className="bg-[#c8b481] text-[#3f230f] px-4 py-2 rounded-lg shadow hover:bg-[#e6d3a3] transition-all duration-200">
+                Sign Up
+              </button>
+            </a>
+          </div>
         </div>
 
         {/* Bottom subtle shadow */}
