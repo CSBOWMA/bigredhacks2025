@@ -1,0 +1,11 @@
+*.flv
+
+*.env
+
+gin/*.env
+
+nextjs/*.env
+
+hls/
+
+

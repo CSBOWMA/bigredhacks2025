@@ -1,54 +1,35 @@
-# --------------------------------------------------------------
-# Stage 1 – Development image (includes the Gin hot‑reloader)
-# --------------------------------------------------------------
-FROM golang:1.25-alpine AS dev
+# ---------- Builder stage ----------
+FROM golang:1.24.2-alpine AS builder
 
-# Install tools needed for the build and for the Gin CLI
-# git is required for go mod download, gcc & musl-dev for cgo (if you use it)
-RUN apk add --no-cache git gcc musl-dev
+# Install git (required for any potential git‑based module proxy fallback)
+RUN apk add --no-cache git ca-certificates
 
-# Set the working directory inside the container
-WORKDIR /app
+# Working directory inside the container
+WORKDIR /src
 
-# -----------------------------------------------------------------
-# Cache Go modules – copy only go.mod/go.sum first, then download.
-# This layer is cached as long as those files don't change.
-# -----------------------------------------------------------------
-COPY go.mod go.sum ./
-RUN go mod download
-
-# Copy the rest of the source code (this layer will be re‑built on every change)
+# Copy everything we need for the build.
+#   - go.mod, go.sum, vendor/ (already populated)
+#   - source code (cmd, pkg, etc.)
 COPY . .
 
-# Expose the port that Gin will listen on (default for Gin is 8080)
-EXPOSE 8080
+# Sanity check: make sure vendor/ exists and is populated.
 
-# -----------------------------------------------------------------
-# Default command for the dev image:
-#   gin runs the app with automatic recompilation on file changes.
-#   The "--port" flag makes sure we bind to the same port we expose.
-# -----------------------------------------------------------------
-CMD ["gin", "run", "--port", "8080"]
+# Build the binary using the vendored modules only.
+#   -mod=vendor forces the go tool to read from ./vendor
+#   CGO_ENABLED=0 produces a static binary that runs on a scratch image.
+#   -ldflags="-s -w" strips debug information to keep the image tiny.
+RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o /app ./cmd/server
 
-# --------------------------------------------------------------
-# Stage 2 – Builder (produces a static binary)
-# --------------------------------------------------------------
-FROM dev AS builder
+# ---------- Runtime stage ----------
+# Use a minimal base image (no shell, no extra libraries)
+FROM alpine:3.20 AS runtime
 
-# Build a static, fully‑optimized binary for Linux.
-# CGO_ENABLED=0 makes the binary 100% static (no external glibc).
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /app/server .
+# Copy the compiled binary from the builder stage.
+COPY --from=builder /app /app
+COPY ./.env /.env
 
-# --------------------------------------------------------------
-# Stage 3 – Production image (scratch, ~5‑10 MB)
-# --------------------------------------------------------------
-FROM alpine:latest AS prod
+# (Optional) run as a non‑root user for extra safety.
+# RUN adduser -D -g '' appuser
+# USER appuser
 
-# Copy only the compiled binary from the builder stage.
-COPY --from=builder /app/server /server
-
-# Keep the same port exposed for production.
-EXPOSE 8080
-
-# Run the binary.
-CMD ["/server"]
+ENTRYPOINT ["/app"]

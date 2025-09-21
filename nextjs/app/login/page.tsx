@@ -2,11 +2,11 @@
 
 import { useState, useEffect, useRef } from "react";
 import * as d3 from "d3";
-import { useRouter } from "next/navigation"; // Next.js router
+import { useRouter } from "next/navigation";
 
 export default function Login() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
+  const [emailOrUsername, setEmailOrUsername] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
   const svgRef = useRef<SVGSVGElement>(null);
@@ -14,23 +14,30 @@ export default function Login() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
-    if (!email || !password) {
+    if (!emailOrUsername || !password) {
       setMessage("Please fill out all fields.");
       return;
     }
 
     try {
-      const res = await fetch("/api/login", {
+      const res = await fetch("http://localhost:8080/api/v1/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({
+          email_or_username: emailOrUsername,
+          password: password,
+        }),
       });
 
       const data = await res.json();
+
       if (res.ok) {
+        // Store token and user_id locally
+        localStorage.setItem("sessionId", data.session_id);
+        localStorage.setItem("userId", data.user_id);
+
         setMessage("Logged in successfully!");
-        // Optional: redirect after login
-        // router.push("/dashboard");
+        router.push("/"); // Redirect after login
       } else {
         setMessage(data.error || "Invalid credentials.");
       }
@@ -40,7 +47,7 @@ export default function Login() {
     }
   }
 
-  // Hexagon background code (same as SignUp)
+  // Background animation
   useEffect(() => {
     if (!svgRef.current) return;
     const svg = d3.select(svgRef.current);
@@ -99,14 +106,22 @@ export default function Login() {
       for (let i = 0; i < hexCount; i++) {
         const angle = (Math.PI * 2 * i) / hexCount + sectionIndex * 0.3;
         const distance = Math.random() * spreadRadius;
-        const x = section.baseX + distance * Math.cos(angle) + (Math.random() - 0.5) * 40;
-        const y = section.baseY + distance * Math.sin(angle) + (Math.random() - 0.5) * 40;
+        const x =
+          section.baseX +
+          distance * Math.cos(angle) +
+          (Math.random() - 0.5) * 40;
+        const y =
+          section.baseY +
+          distance * Math.sin(angle) +
+          (Math.random() - 0.5) * 40;
         const radius = baseRadius + (Math.random() - 0.5) * 12;
 
         hexagons.push({
           x,
           y,
           radius: Math.max(20, radius),
+          dx: (Math.random() - 0.5) * 0.5,
+          dy: (Math.random() - 0.5) * 0.5,
           id: `section-${sectionIndex}-${i}`,
         });
       }
@@ -129,8 +144,7 @@ export default function Login() {
       .enter()
       .append("g")
       .attr("class", "hexagon")
-      .attr("transform", (d) => `translate(${d.x}, ${d.y})`)
-      .style("cursor", "pointer");
+      .attr("transform", (d) => `translate(${d.x}, ${d.y})`);
 
     hexElements
       .append("path")
@@ -138,8 +152,20 @@ export default function Login() {
       .attr("fill", "none")
       .attr("stroke", "#4b2a16")
       .attr("stroke-width", 3)
-      .attr("stroke-opacity", 0.95)
-      .style("transition", "all 0.3s ease");
+      .attr("stroke-opacity", 0.95);
+
+    const animate = () => {
+      hexagons.forEach((d) => {
+        d.x += d.dx;
+        d.y += d.dy;
+        if (d.x < 0 || d.x > width) d.dx *= -1;
+        if (d.y < 0 || d.y > height) d.dy *= -1;
+      });
+      hexElements.attr("transform", (d) => `translate(${d.x}, ${d.y})`);
+      requestAnimationFrame(animate);
+    };
+
+    animate();
   }, []);
 
   return (
@@ -157,16 +183,16 @@ export default function Login() {
 
       <form
         onSubmit={handleSubmit}
-        className="flex flex-col w-full max-w-md bg-white/95 dark:bg-white/95 rounded-xl p-8 items-center shadow-2xl pop-in reflective backdrop-blur-sm border border-white/20"
+        className="flex flex-col w-full max-w-md bg-white/95 rounded-xl p-8 items-center shadow-2xl pop-in reflective backdrop-blur-sm border border-white/20"
       >
         <img className="w-14 m-4 floaty" src="/hivelogo2.png" alt="Hive logo" />
         <h2 className="text-2xl font-semibold mb-4">Log in</h2>
 
-        <label className="block text-md mb-1 font-bold">Email</label>
+        <label className="block text-md mb-1 font-bold">Email or Username</label>
         <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          type="text"
+          value={emailOrUsername}
+          onChange={(e) => setEmailOrUsername(e.target.value)}
           className="form-input w-full mb-4 p-3 bg-stone-200 rounded-xl"
         />
 
@@ -182,7 +208,6 @@ export default function Login() {
 
         {message && <p className="mt-4 text-sm text-gray-600">{message}</p>}
 
-        {/* Link to Sign Up */}
         <p className="mt-4 text-sm text-gray-600">
           Don't have an account?{" "}
           <span

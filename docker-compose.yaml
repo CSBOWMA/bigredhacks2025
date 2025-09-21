@@ -1,0 +1,42 @@
+version: "3.9"
+
+networks:
+  appnet:
+    driver: bridge
+
+services:
+  # --------------------------------------------------------------
+  #  Next.js front‑end (port 80)
+  # --------------------------------------------------------------
+  nextjs:
+    build: ./nextjs
+    ports: ["80:3000"]
+    depends_on: [gin]
+    environment:
+      - NEXT_PUBLIC_API_URL=http://gin:8080/api
+    networks: [appnet]
+
+  # --------------------------------------------------------------
+  #  Gin API
+  # --------------------------------------------------------------
+  gin:
+    build: ./gin
+    ports: ["8080:8080"]
+    environment:
+      - JWT_SECRET=super-secret-change-me
+      - GIN_MODE=release
+    networks: [appnet]
+
+  # --------------------------------------------------------------
+  #  Nginx‑RTMP (custom image, custom entrypoint)
+  # --------------------------------------------------------------
+  rtmp:
+    build:
+      context: ./rtmp            # folder that contains Dockerfile, nginx.conf, entrypoint.sh
+    ports:
+      - "1935:1935"   # RTMP
+      - "8081:80"     # HLS
+    volumes:
+      - ./hls:/tmp/hls           # persist HLS fragments (DO NOT mount nginx.conf)
+    depends_on: [gin]
+    networks: [appnet]
