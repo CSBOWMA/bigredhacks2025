@@ -25,25 +25,25 @@ export default function Header() {
               <input
                 type="text"
                 placeholder="Search streams..."
-                className="w-80 px-4 py-2 rounded-full border border-white/30 bg-white/20 backdrop-blur-md text-amber-900/80 text-[13px] outline-none shadow-lg placeholder-amber-700/50 focus:bg-white/30 focus:border-white/50 transition-all duration-300"
+                className="w-80 px-4 py-2 rounded-full bg-[#c8b481] borderbackdrop-blur-md text-[#3f230f] text-[13px] outline-none shadow-lg placeholder-[#3f230f] focus:bg-white/30 focus:border-white/50 transition-all duration-300"
               />
               {/* Input reflection highlight */}
-              <div className="absolute top-0 left-0 w-full h-1/2 rounded-t-full bg-gradient-to-b from-white/30 to-transparent pointer-events-none"></div>
+              <div className="absolute top-0 left-0 w-full h-1/2 rounded-t-full rom-white/30 to-transparent pointer-events-none"></div>
             </div>
           </div>
 
           <button
-            className="bg-white/20 backdrop-blur-sm border border-white/30 rounded-lg px-3 py-2 text-2xl cursor-pointer text-amber-800/80 hover:bg-white/30 hover:text-amber-900 transition-all duration-300 shadow-lg relative overflow-hidden"
+            className="bg-white/20 backdrop-blur-sm rounded-lg px-3 py-2 text-2xl cursor-pointer text-[#3f230f] hover:bg-white/30 hover:text-[#3f230f] transition-all duration-300 relative overflow-hidden"
             aria-label="Menu"
           >
             {/* Button reflection */}
-            <div className="absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-white/40 to-transparent pointer-events-none"></div>
+            <div className="absolute top-0 left-0 w-full h-1/2 pointer-events-none"></div>
             <span className="relative z-10">&#9776;</span>
           </button>
         </div>
 
         {/* Bottom subtle shadow */}
-        <div className="absolute bottom-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-amber-200/30 to-transparent"></div>
+        <div className="absolute bottom-0 left-0 w-full h-px from-transparent via-amber-200/30 to-transparent"></div>
       </header>
     </>
   )

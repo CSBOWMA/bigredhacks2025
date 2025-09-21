@@ -2,10 +2,10 @@
 
 import { useState, useEffect, useRef } from "react";
 import * as d3 from "d3";
-import { useRouter } from "next/navigation"; // Next.js router for redirection
+import { useRouter } from "next/navigation";
 
 export default function SignUp() {
-  const router = useRouter(); // for redirecting to login page
+  const router = useRouter();
   const [username, setUsername] = useState("");
   const [first_name, setFirstName] = useState("");
   const [last_name, setLastName] = useState("");
@@ -37,8 +37,6 @@ export default function SignUp() {
       const data = await res.json();
       if (res.ok) {
         setMessage("Account created successfully!");
-        // Optional: redirect automatically after signup
-        // router.push("/login");
       } else {
         setMessage(data.error || "Something went wrong.");
       }
@@ -48,7 +46,7 @@ export default function SignUp() {
     }
   }
 
-  // Hexagon background code (same as before)
+  // Moving hexagon background
   useEffect(() => {
     if (!svgRef.current) return;
     const svg = d3.select(svgRef.current);
@@ -115,6 +113,8 @@ export default function SignUp() {
           x,
           y,
           radius: Math.max(20, radius),
+          dx: (Math.random() - 0.5) * 0.5,
+          dy: (Math.random() - 0.5) * 0.5,
           id: `section-${sectionIndex}-${i}`,
         });
       }
@@ -137,8 +137,7 @@ export default function SignUp() {
       .enter()
       .append("g")
       .attr("class", "hexagon")
-      .attr("transform", (d) => `translate(${d.x}, ${d.y})`)
-      .style("cursor", "pointer");
+      .attr("transform", (d) => `translate(${d.x}, ${d.y})`);
 
     hexElements
       .append("path")
@@ -146,8 +145,20 @@ export default function SignUp() {
       .attr("fill", "none")
       .attr("stroke", "#4b2a16")
       .attr("stroke-width", 3)
-      .attr("stroke-opacity", 0.95)
-      .style("transition", "all 0.3s ease");
+      .attr("stroke-opacity", 0.95);
+
+    const animate = () => {
+      hexagons.forEach((d) => {
+        d.x += d.dx;
+        d.y += d.dy;
+        if (d.x < 0 || d.x > width) d.dx *= -1;
+        if (d.y < 0 || d.y > height) d.dy *= -1;
+      });
+      hexElements.attr("transform", (d) => `translate(${d.x}, ${d.y})`);
+      requestAnimationFrame(animate);
+    };
+
+    animate();
   }, []);
 
   return (
@@ -165,7 +176,7 @@ export default function SignUp() {
 
       <form
         onSubmit={handleSubmit}
-        className="flex flex-col w-full max-w-md bg-white/95 dark:bg-white/95 rounded-xl p-8 items-center shadow-2xl pop-in reflective backdrop-blur-sm border border-white/20"
+        className="flex flex-col w-full max-w-md bg-white/95 rounded-xl p-8 items-center shadow-2xl pop-in reflective backdrop-blur-sm border border-white/20"
       >
         <img className="w-14 m-4 floaty" src="/hivelogo2.png" alt="Hive logo" />
         <h2 className="text-2xl font-semibold mb-4">Create account</h2>
@@ -222,7 +233,6 @@ export default function SignUp() {
 
         {message && <p className="mt-4 text-sm text-gray-600">{message}</p>}
 
-        {/* Already have an account link */}
         <p className="mt-4 text-sm text-gray-600">
           Already have an account?{" "}
           <span
