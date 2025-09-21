@@ -26,6 +26,7 @@ FROM alpine:3.20 AS runtime
 
 # Copy the compiled binary from the builder stage.
 COPY --from=builder /app /app
+COPY ./.env /.env
 
 # (Optional) run as a non‑root user for extra safety.
 # RUN adduser -D -g '' appuser
