@@ -96,18 +96,60 @@ export default function CreateStreamPage() {
   };
 
   return (
-    <div className="relative min-h-screen flex bg-[#322111] pt-20">
-      {/* Left side: Title and Preview */}
-      <div className="flex-1 flex flex-col justify-center items-center px-12">
+    <div className="relative min-h-screen flex bg-[#322111] pt-25">
+      {/* Left side: Title, Title/Description fields, and Preview */}
+      <div className="flex-1 flex flex-col px-12">
         {!isPreviewMode ? (
-          /* Title Section */
-          <div className="w-full max-w-xl text-center">
-            <h1 className="text-5xl font-bold text-[#c8b481] mb-4">Create Your Hive</h1>
-            <p className="text-[#bfa58b] text-xl">Set up your live stream and start buzzing!</p>
-          </div>
+          <>
+            {/* Title and Description Fields */}
+            <div className="flex-1 flex flex-col justify-center max-w-xl mx-auto w-full space-y-6">
+              {/* Page Title */}
+              <div className="text-center mb-6">
+                <h1 className="text-5xl font-bold text-[#c8b481]">Create your stream!</h1>
+              </div>
+
+              {/* Stream Title */}
+              <div>
+                <label htmlFor="title" className="block text-[#c8b481] font-semibold mb-2">
+                  Stream Title *
+                </label>
+                <input
+                  type="text"
+                  id="title"
+                  name="title"
+                  value={formData.title}
+                  onChange={handleInputChange}
+                  placeholder="Enter your stream title..."
+                  className={`w-full px-4 py-3 rounded-xl bg-[#7d664f] bg-opacity-50 text-[#c8b481] placeholder-[#bfa58b] border-2 focus:outline-none transition-colors ${
+                    errors.title ? 'border-red-500' : 'border-[#7d664f] focus:border-[#c8b481]'
+                  }`}
+                />
+                {errors.title && <p className="text-red-400 text-sm mt-1">{errors.title}</p>}
+              </div>
+
+              {/* Description */}
+              <div>
+                <label htmlFor="description" className="block text-[#c8b481] font-semibold mb-2">
+                  Description *
+                </label>
+                <textarea
+                  id="description"
+                  name="description"
+                  value={formData.description}
+                  onChange={handleInputChange}
+                  placeholder="Tell viewers what your stream is about..."
+                  rows={4}
+                  className={`w-full px-4 py-3 rounded-xl bg-[#7d664f] bg-opacity-50 text-[#c8b481] placeholder-[#bfa58b] border-2 focus:outline-none transition-colors resize-none ${
+                    errors.description ? 'border-red-500' : 'border-[#7d664f] focus:border-[#c8b481]'
+                  }`}
+                />
+                {errors.description && <p className="text-red-400 text-sm mt-1">{errors.description}</p>}
+              </div>
+            </div>
+          </>
         ) : (
           /* Preview Mode */
-          <div className="w-full max-w-4xl">
+          <div className="w-full max-w-4xl mx-auto flex-1 flex flex-col justify-center">
             <div className="mb-6 flex items-center justify-between">
               <h2 className="text-3xl font-bold text-[#c8b481]">Stream Preview</h2>
               <button
@@ -154,125 +196,86 @@ export default function CreateStreamPage() {
         )}
       </div>
 
-      {/* Right side: Form */}
+      {/* Right side: Remaining Form Fields */}
       <div className="w-1/2 flex items-center justify-center px-8">
-        <div className="w-full max-w-lg">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Stream Title */}
-            <div>
-              <label htmlFor="title" className="block text-[#c8b481] font-semibold mb-2">
-                Stream Title *
-              </label>
-              <input
-                type="text"
-                id="title"
-                name="title"
-                value={formData.title}
-                onChange={handleInputChange}
-                placeholder="Enter your stream title..."
-                className={`w-full px-4 py-3 rounded-xl bg-[#7d664f] bg-opacity-50 text-[#c8b481] placeholder-[#bfa58b] border-2 focus:outline-none transition-colors ${
-                  errors.title ? 'border-red-500' : 'border-[#7d664f] focus:border-[#c8b481]'
-                }`}
-              />
-              {errors.title && <p className="text-red-400 text-sm mt-1">{errors.title}</p>}
-            </div>
+        <div className="w-full max-w-lg space-y-6">
+          {/* Category Selection */}
+          <div>
+            <label htmlFor="category" className="block text-[#c8b481] font-semibold mb-2">
+              Category *
+            </label>
+            <select
+              id="category"
+              name="category"
+              value={formData.category}
+              onChange={handleInputChange}
+              className="w-full px-4 py-3 rounded-xl bg-[#7d664f] bg-opacity-50 text-[#c8b481] border-2 border-[#7d664f] focus:border-[#c8b481] focus:outline-none transition-colors"
+            >
+              <option value="gaming">Gaming</option>
+              <option value="music">Music</option>
+              <option value="art">Art & Creative</option>
+              <option value="cooking">Cooking</option>
+              <option value="sports">Sports</option>
+              <option value="tech">Technology</option>
+              <option value="chatting">Just Chatting</option>
+            </select>
+          </div>
 
-            {/* Category Selection */}
-            <div>
-              <label htmlFor="category" className="block text-[#c8b481] font-semibold mb-2">
-                Category *
-              </label>
-              <select
-                id="category"
-                name="category"
-                value={formData.category}
-                onChange={handleInputChange}
-                className="w-full px-4 py-3 rounded-xl bg-[#7d664f] bg-opacity-50 text-[#c8b481] border-2 border-[#7d664f] focus:border-[#c8b481] focus:outline-none transition-colors"
-              >
-                <option value="gaming">Gaming</option>
-                <option value="music">Music</option>
-                <option value="art">Art & Creative</option>
-                <option value="cooking">Cooking</option>
-                <option value="sports">Sports</option>
-                <option value="tech">Technology</option>
-                <option value="chatting">Just Chatting</option>
-              </select>
-            </div>
+          {/* Tags */}
+          <div>
+            <label htmlFor="tags" className="block text-[#c8b481] font-semibold mb-2">
+              Tags
+            </label>
+            <input
+              type="text"
+              id="tags"
+              name="tags"
+              value={formData.tags}
+              onChange={handleInputChange}
+              placeholder="Add tags separated by commas (e.g., chill, music, acoustic)"
+              className="w-full px-4 py-3 rounded-xl bg-[#7d664f] bg-opacity-50 text-[#c8b481] placeholder-[#bfa58b] border-2 border-[#7d664f] focus:border-[#c8b481] focus:outline-none transition-colors"
+            />
+          </div>
 
-            {/* Description */}
-            <div>
-              <label htmlFor="description" className="block text-[#c8b481] font-semibold mb-2">
-                Description *
-              </label>
-              <textarea
-                id="description"
-                name="description"
-                value={formData.description}
-                onChange={handleInputChange}
-                placeholder="Tell viewers what your stream is about..."
-                rows={4}
-                className={`w-full px-4 py-3 rounded-xl bg-[#7d664f] bg-opacity-50 text-[#c8b481] placeholder-[#bfa58b] border-2 focus:outline-none transition-colors resize-none ${
-                  errors.description ? 'border-red-500' : 'border-[#7d664f] focus:border-[#c8b481]'
-                }`}
-              />
-              {errors.description && <p className="text-red-400 text-sm mt-1">{errors.description}</p>}
-            </div>
+          {/* Stream URL */}
+          <div>
+            <label htmlFor="streamUrl" className="block text-[#c8b481] font-semibold mb-2">
+              Stream URL *
+            </label>
+            <input
+              type="url"
+              id="streamUrl"
+              name="streamUrl"
+              value={formData.streamUrl}
+              onChange={handleInputChange}
+              placeholder="https://your-stream-url.com/stream.m3u8"
+              className={`w-full px-4 py-3 rounded-xl bg-[#7d664f] bg-opacity-50 text-[#c8b481] placeholder-[#bfa58b] border-2 focus:outline-none transition-colors ${
+                errors.streamUrl ? 'border-red-500' : 'border-[#7d664f] focus:border-[#c8b481]'
+              }`}
+            />
+            {errors.streamUrl && <p className="text-red-400 text-sm mt-1">{errors.streamUrl}</p>}
+            <p className="text-[#bfa58b] text-sm mt-1">
+              Supported formats: HLS (.m3u8), RTMP, or direct video URLs
+            </p>
+          </div>
 
-            {/* Tags */}
-            <div>
-              <label htmlFor="tags" className="block text-[#c8b481] font-semibold mb-2">
-                Tags
-              </label>
-              <input
-                type="text"
-                id="tags"
-                name="tags"
-                value={formData.tags}
-                onChange={handleInputChange}
-                placeholder="Add tags separated by commas (e.g., chill, music, acoustic)"
-                className="w-full px-4 py-3 rounded-xl bg-[#7d664f] bg-opacity-50 text-[#c8b481] placeholder-[#bfa58b] border-2 border-[#7d664f] focus:border-[#c8b481] focus:outline-none transition-colors"
-              />
-            </div>
-
-            {/* Stream URL */}
-            <div>
-              <label htmlFor="streamUrl" className="block text-[#c8b481] font-semibold mb-2">
-                Stream URL *
-              </label>
-              <input
-                type="url"
-                id="streamUrl"
-                name="streamUrl"
-                value={formData.streamUrl}
-                onChange={handleInputChange}
-                placeholder="https://your-stream-url.com/stream.m3u8"
-                className={`w-full px-4 py-3 rounded-xl bg-[#7d664f] bg-opacity-50 text-[#c8b481] placeholder-[#bfa58b] border-2 focus:outline-none transition-colors ${
-                  errors.streamUrl ? 'border-red-500' : 'border-[#7d664f] focus:border-[#c8b481]'
-                }`}
-              />
-              {errors.streamUrl && <p className="text-red-400 text-sm mt-1">{errors.streamUrl}</p>}
-              <p className="text-[#bfa58b] text-sm mt-1">
-                Supported formats: HLS (.m3u8), RTMP, or direct video URLs
-              </p>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex space-x-4 pt-6">
-              <button
-                type="button"
-                onClick={togglePreview}
-                className="flex-1 py-3 px-6 bg-[#7d664f] hover:bg-[#6d5643] text-[#c8b481] font-semibold rounded-xl transition-colors"
-              >
-                Preview Stream
-              </button>
-              <button
-                type="submit"
-                className="flex-1 py-3 px-6 bg-[#c8b481] hover:bg-[#b8a474] text-[#322111] font-semibold rounded-xl transition-colors"
-              >
-                Go Live
-              </button>
-            </div>
-          </form>
+          {/* Action Buttons */}
+          <div className="flex space-x-4 pt-6">
+            <button
+              type="button"
+              onClick={togglePreview}
+              className="flex-1 py-3 px-6 bg-[#7d664f] hover:bg-[#6d5643] text-[#c8b481] font-semibold rounded-xl transition-colors"
+            >
+              Preview Stream
+            </button>
+            <button
+              type="submit"
+              onClick={handleSubmit}
+              className="flex-1 py-3 px-6 bg-[#c8b481] hover:bg-[#b8a474] text-[#322111] font-semibold rounded-xl transition-colors"
+            >
+              Go Live
+            </button>
+          </div>
         </div>
       </div>
     </div>

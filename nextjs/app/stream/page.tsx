@@ -7,7 +7,7 @@ export default function StreamPage() {
 
   useEffect(() => {
     const video = videoRef.current;
-    const hlsUrl = "https://localhost:8081/hls/test.m3u8"; // replace with your HLS link
+    const hlsUrl = "http://localhost:8081/hls/test.m3u8"; // replace with your HLS link
 
     if (video) {
       if (Hls.isSupported()) {
