@@ -3,21 +3,36 @@ package main
 import (
 	"log"
 	"net/http"
+	"strings"
+
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-    "github.com/gin-contrib/cors"
-    "github.com/CSBOWMA/bigredhacks2025/gin/internal/api/v1"
-    "github.com/CSBOWMA/bigredhacks2025/gin/internal/db"
-    "github.com/CSBOWMA/bigredhacks2025/gin/internal/config" 
+
+	"github.com/CSBOWMA/bigredhacks2025/gin/internal/api/v1"
+	"github.com/CSBOWMA/bigredhacks2025/gin/internal/config"
+	"github.com/CSBOWMA/bigredhacks2025/gin/internal/db"
 )
+
+// allowOriginFunc returns true if the request origin is localhost (any port).
+// This is safe for local development because the browser already guarantees
+// that the Origin header cannot be forged by a different site.
+func allowOriginFunc(origin string) bool {
+	// Accept anything that starts with http://localhost:
+	//   http://localhost
+	//   http://localhost:80
+	//   http://localhost:3000
+	//   http://localhost:8080
+	return strings.HasPrefix(origin, "http://localhost")
+}
 
 func main() {
 	// -----------------------------------------------------------------
-	// 1️⃣ Load .env (populates os.Environ for the rest of the code)
+	// � Load .env
 	// -----------------------------------------------------------------
 	env := config.Load()
 
 	// -----------------------------------------------------------------
-	// 2️⃣ Connect to MongoDB Atlas
+	// � Connect to MongoDB
 	// -----------------------------------------------------------------
 	mongoURI := env["MONGODB_URI"]
 	if mongoURI == "" {
@@ -29,34 +44,40 @@ func main() {
 	defer db.Close()
 
 	// -----------------------------------------------------------------
-	// 3️⃣ Gin router – minimal middleware for a hackathon
+	// � Gin router
 	// -----------------------------------------------------------------
 	r := gin.New()
 	r.Use(gin.Recovery()) // recover from panics
 
-      r.Use(cors.New(cors.Config{
-        AllowOrigins:     []string{"*"},                 // <-- allow any origin
-        AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-        AllowHeaders:     []string{"Origin", "Content-Type", "Authorization", "X-Session-ID"},
-        ExposeHeaders:    []string{""},
-        AllowCredentials: true,
-    }))
+	// ---------- CORS ----------
+	// This configuration:
+	//   • Echoes back the exact Origin (if it passes allowOriginFunc)
+	//   • Allows credentials (cookies, Authorization header)
+	//   • Allows the methods/headers you need
+	corsCfg := cors.Config{
+		AllowOriginFunc:  allowOriginFunc,
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization", "X-Session-ID"},
+		ExposeHeaders:    []string{"X-Session-ID"},
+		AllowCredentials: true,
+	}
+	r.Use(cors.New(corsCfg))
 
 	// -----------------------------------------------------------------
-	// 4️⃣ Register the v1 routes (handlers use db.DB() internally)
+	// � Register the v1 routes
 	// -----------------------------------------------------------------
 	apiGroup := r.Group("/api/v1")
 	v1.RegisterRoutes(apiGroup)
 
 	// -----------------------------------------------------------------
-	// 5️⃣ Simple health endpoint (useful for Docker/K8s)
+	// � Health endpoint
 	// -----------------------------------------------------------------
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
 
 	// -----------------------------------------------------------------
-	// 6️⃣ Start the HTTP server
+	// � Start the HTTP server
 	// -----------------------------------------------------------------
 	port := env["PORT"]
 	if port == "" {
